@@ -5,7 +5,7 @@
 Visit https://www.python.org/downloads
 
 
-Download the latest stable version (e.g., 3.11 or 3.12)
+Download the latest stable version (3.13.+)
 
 
 ⚠️ During installation, check the box: ✅ “Add Python to PATH”
