@@ -1,0 +1,108 @@
+# database.py
+import psycopg2
+from psycopg2 import Error
+import pandas as pd # For easy data display later
+
+# Replace with your PostgreSQL credentials
+DB_HOST = "localhost"
+DB_NAME = "todo_db"
+DB_USER = "your_username"
+DB_PASSWORD = "your_password"
+
+def get_db_connection():
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        return conn
+    except Error as e:
+        print(f"Error connecting to PostgreSQL: {e}")
+        return None
+
+def create_todo(task_name, start_time, end_time, details):
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = """
+            INSERT INTO todos (task_name, start_time, end_time, details)
+            VALUES (%s, %s, %s, %s) RETURNING id;
+            """
+            cursor.execute(query, (task_name, start_time, end_time, details))
+            new_id = cursor.fetchone()[0]
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return new_id
+        except Error as e:
+            print(f"Error creating todo: {e}")
+            return None
+    return None
+
+def get_all_todos():
+    conn = get_db_connection()
+    if conn:
+        try:
+            df = pd.read_sql_query("SELECT * FROM todos ORDER BY id DESC;", conn)
+            conn.close()
+            return df
+        except Error as e:
+            print(f"Error fetching todos: {e}")
+            return pd.DataFrame() # Return empty DataFrame on error
+    return pd.DataFrame()
+
+def get_todo_by_id(todo_id):
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = "SELECT * FROM todos WHERE id = %s;"
+            cursor.execute(query, (todo_id,))
+            todo = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            return todo
+        except Error as e:
+            print(f"Error fetching todo by ID: {e}")
+            return None
+    return None
+
+def update_todo(todo_id, task_name, start_time, end_time, details, status):
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = """
+            UPDATE todos
+            SET task_name = %s, start_time = %s, end_time = %s, details = %s, status = %s
+            WHERE id = %s;
+            """
+            cursor.execute(query, (task_name, start_time, end_time, details, status, todo_id))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True
+        except Error as e:
+            print(f"Error updating todo: {e}")
+            return False
+    return False
+
+def delete_todo(todo_id):
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = "DELETE FROM todos WHERE id = %s;"
+            cursor.execute(query, (todo_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True
+        except Error as e:
+            print(f"Error deleting todo: {e}")
+            return False
+    return False
