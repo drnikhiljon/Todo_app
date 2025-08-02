@@ -1,13 +1,14 @@
 # database.py
 import psycopg2
 from psycopg2 import Error
-import pandas as pd # For easy data display later
+import pandas as pd
+import datetime # Import datetime for handling timestamp objects
 
 # Replace with your PostgreSQL credentials
 DB_HOST = "localhost"
-DB_NAME = "todo_db"
-DB_USER = "your_username"
-DB_PASSWORD = "your_password"
+DB_NAME = "Todo_Dashboard"
+DB_USER = "postgres"
+DB_PASSWORD = "Admin"
 
 def get_db_connection():
     conn = None
@@ -23,16 +24,16 @@ def get_db_connection():
         print(f"Error connecting to PostgreSQL: {e}")
         return None
 
-def create_todo(task_name, start_time, end_time, details):
+def create_todo(task_name, start_time, end_time, details, media_data=None, media_filename=None, media_mimetype=None):
     conn = get_db_connection()
     if conn:
         try:
             cursor = conn.cursor()
             query = """
-            INSERT INTO todos (task_name, start_time, end_time, details)
-            VALUES (%s, %s, %s, %s) RETURNING id;
+            INSERT INTO todos (task_name, start_time, end_time, details, media_data, media_filename, media_mimetype)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;
             """
-            cursor.execute(query, (task_name, start_time, end_time, details))
+            cursor.execute(query, (task_name, start_time, end_time, details, media_data, media_filename, media_mimetype))
             new_id = cursor.fetchone()[0]
             conn.commit()
             cursor.close()
@@ -47,12 +48,13 @@ def get_all_todos():
     conn = get_db_connection()
     if conn:
         try:
-            df = pd.read_sql_query("SELECT * FROM todos ORDER BY id DESC;", conn)
+            # Fetch all columns including new media columns
+            df = pd.read_sql_query("SELECT id, task_name, start_time, end_time, details, status, media_data, media_filename, media_mimetype FROM todos ORDER BY id DESC;", conn)
             conn.close()
             return df
         except Error as e:
             print(f"Error fetching todos: {e}")
-            return pd.DataFrame() # Return empty DataFrame on error
+            return pd.DataFrame()
     return pd.DataFrame()
 
 def get_todo_by_id(todo_id):
@@ -60,7 +62,8 @@ def get_todo_by_id(todo_id):
     if conn:
         try:
             cursor = conn.cursor()
-            query = "SELECT * FROM todos WHERE id = %s;"
+            # Select all columns explicitly to maintain order and access by index if needed
+            query = "SELECT id, task_name, start_time, end_time, details, status, media_data, media_filename, media_mimetype FROM todos WHERE id = %s;"
             cursor.execute(query, (todo_id,))
             todo = cursor.fetchone()
             cursor.close()
@@ -71,17 +74,19 @@ def get_todo_by_id(todo_id):
             return None
     return None
 
-def update_todo(todo_id, task_name, start_time, end_time, details, status):
+def update_todo(todo_id, task_name, start_time, end_time, details, status, media_data=None, media_filename=None, media_mimetype=None):
     conn = get_db_connection()
     if conn:
         try:
             cursor = conn.cursor()
             query = """
             UPDATE todos
-            SET task_name = %s, start_time = %s, end_time = %s, details = %s, status = %s
+            SET task_name = %s, start_time = %s, end_time = %s, details = %s, status = %s,
+                media_data = %s, media_filename = %s, media_mimetype = %s
             WHERE id = %s;
             """
-            cursor.execute(query, (task_name, start_time, end_time, details, status, todo_id))
+            cursor.execute(query, (task_name, start_time, end_time, details, status,
+                                    media_data, media_filename, media_mimetype, todo_id))
             conn.commit()
             cursor.close()
             conn.close()
