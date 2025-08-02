@@ -1,0 +1,8 @@
+CREATE TABLE todos (
+    id SERIAL PRIMARY KEY,
+    task_name VARCHAR(255) NOT NULL,
+    start_time TIMESTAMP,
+    end_time TIMESTAMP,
+    details TEXT,
+    status VARCHAR(50) DEFAULT 'Pending' -- e.g., 'Pending', 'Completed', 'In Progress'
+);
