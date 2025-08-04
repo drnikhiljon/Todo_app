@@ -1,8 +1,11 @@
 CREATE TABLE todos (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY, -- Changed to VARCHAR for alphanumeric ID
     task_name VARCHAR(255) NOT NULL,
-    start_time TIMESTAMP,
-    end_time TIMESTAMP,
-    details TEXT,
-    status VARCHAR(50) DEFAULT 'Pending' -- e.g., 'Pending', 'Completed', 'In Progress'
+    start_time TIMESTAMP NOT NULL, -- Made mandatory
+    end_time TIMESTAMP NOT NULL,   -- Made mandatory
+    details TEXT NOT NULL,         -- Made mandatory
+    status VARCHAR(50) DEFAULT 'Pending',
+    media_data BYTEA,
+    media_filename VARCHAR(255),
+    media_mimetype VARCHAR(100)
 );
