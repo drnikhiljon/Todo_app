@@ -1,6 +1,6 @@
 # app.py
 import streamlit as st
-import database as db
+import backend as db
 import datetime
 import io # To handle binary data from file uploads
 
@@ -19,7 +19,6 @@ def combine_date_time(date_obj, time_obj):
 st.header("Add New Todo")
 with st.form("new_todo_form", clear_on_submit=True): # clear_on_submit to clear form after adding
     task_name = st.text_input("Task Name*", max_chars=255)
-
     col_start, col_end = st.columns(2)
     with col_start:
         start_date = st.date_input("Start Date*", value=datetime.date.today(), key="start_date_add")
@@ -27,7 +26,6 @@ with st.form("new_todo_form", clear_on_submit=True): # clear_on_submit to clear 
     with col_end:
         end_date = st.date_input("End Date*", value=datetime.date.today(), key="end_date_add")
         end_time_obj = st.time_input("End Time*", value=(datetime.datetime.now() + datetime.timedelta(hours=1)).time(), key="end_time_add") # Default 1 hour later
-
     details = st.text_area("Task Details*", value="Enter task details here.")
 
     uploaded_file = st.file_uploader("Upload Image/Video (Optional)", type=["jpg", "jpeg", "png", "gif", "mp4", "mov"], key="file_uploader_add")
@@ -68,7 +66,7 @@ st.markdown("---")
 
 # READ & FILTERING
 st.header("Current Todos")
-todos_df = db.get_all_todos()
+todos_df = db.get_all_todos() 
 
 if not todos_df.empty:
     st.subheader("Filter and Search Todos")
