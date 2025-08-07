@@ -8,7 +8,126 @@ import uuid # For generating unique parts of the ID
 # Replace with your PostgreSQL credentials
 DB_HOST = "localhost"
 DB_NAME = "Todo_Dashboard"
+DB_USER = "postgres"# database.py
+import psycopg2
+from psycopg2 import Error
+import pandas as pd
+import datetime
+import uuid # For generating unique parts of the ID
+
+# Replace with your PostgreSQL credentials
+DB_HOST = "localhost"
+DB_NAME = "Todo_Dashboard"
 DB_USER = "postgres"
+DB_PASSWORD = "Admin"
+
+def get_db_connection():
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        return conn
+    except Error as e:
+        print(f"Error connecting to PostgreSQL: {e}")
+        return None
+
+def generate_unique_todo_id(task_name):
+    """Generates a unique alphanumeric ID: first 2 chars of task_name + timestamp + UUID part."""
+    prefix = task_name[:2].upper() if task_name else "XX"
+    timestamp_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f") # YearMonthDayHourMinuteSecondMicrosecond
+    unique_suffix = str(uuid.uuid4())[:8].replace('-', '') # First 8 chars of a UUID
+    return f"{prefix}-{timestamp_str}-{unique_suffix}"
+
+def create_todo(task_name, start_time, end_time, details, media_data=None, media_filename=None, media_mimetype=None):
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            todo_id = generate_unique_todo_id(task_name) # Generate the unique ID here
+
+            query = """
+            INSERT INTO todos (id, task_name, start_time, end_time, details, media_data, media_filename, media_mimetype)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+            """
+            cursor.execute(query, (todo_id, task_name, start_time, end_time, details, media_data, media_filename, media_mimetype))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return todo_id # Return the generated ID
+        except Error as e:
+            print(f"Error creating todo: {e}")
+            return None
+    return None
+
+def get_all_todos():
+    conn = get_db_connection()
+    if conn:
+        try:
+            df = pd.read_sql_query("SELECT id, task_name, start_time, end_time, details, status, media_data, media_filename, media_mimetype FROM todos ORDER BY start_time DESC;", conn)
+            conn.close()
+            return df
+        except Error as e:
+            print(f"Error fetching todos: {e}")
+            return pd.DataFrame()
+    return pd.DataFrame()
+
+def get_todo_by_id(todo_id):
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = "SELECT id, task_name, start_time, end_time, details, status, media_data, media_filename, media_mimetype FROM todos WHERE id = %s;"
+            cursor.execute(query, (todo_id,))
+            todo = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            return todo
+        except Error as e:
+            print(f"Error fetching todo by ID: {e}")
+            return None
+    return None
+
+def update_todo(todo_id, task_name, start_time, end_time, details, status, media_data=None, media_filename=None, media_mimetype=None):
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = """
+            UPDATE todos
+            SET task_name = %s, start_time = %s, end_time = %s, details = %s, status = %s,
+                media_data = %s, media_filename = %s, media_mimetype = %s
+            WHERE id = %s;
+            """
+            cursor.execute(query, (task_name, start_time, end_time, details, status,
+                                    media_data, media_filename, media_mimetype, todo_id))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True
+        except Error as e:
+            print(f"Error updating todo: {e}")
+            return False
+    return False
+
+def delete_todo(todo_id):
+    conn = get_db_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = "DELETE FROM todos WHERE id = %s;"
+            cursor.execute(query, (todo_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True
+        except Error as e:
+            print(f"Error deleting todo: {e}")
+            return False
+    return False
 DB_PASSWORD = "Admin"
 
 def get_db_connection():
